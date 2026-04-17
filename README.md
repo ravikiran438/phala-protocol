@@ -1,7 +1,7 @@
 # Phala Protocol
 
 **Status:** Draft v0.1.0
-**Paper:** *Phala: Principal-Declared Welfare Feedback as a Protocol Extension for Autonomous Agent Networks*
+**Paper:** [Phala: Principal-Declared Welfare Feedback for Autonomous Agent Networks](https://doi.org/10.5281/zenodo.19625612)
 **License:** Apache 2.0
 
 Phala (Sanskrit for *fruit* or *the outcome of action*) is a protocol
@@ -122,15 +122,14 @@ If you reference this work, please cite the paper:
 ```bibtex
 @misc{kadaboina2026phala,
   author       = {Kadaboina, Ravi Kiran},
-  title        = {Phala: Principal-Declared Welfare Feedback as a
-                  Protocol Extension for Autonomous Agent Networks},
+  title        = {Phala: Principal-Declared Welfare Feedback for
+                  Autonomous Agent Networks},
   year         = {2026},
   publisher    = {Zenodo},
-  doi          = {}
+  doi          = {10.5281/zenodo.19625612},
+  url          = {https://doi.org/10.5281/zenodo.19625612}
 }
 ```
-
-The DOI will be added here once the paper is published on Zenodo.
 
 ## Contributing
 
