@@ -8,14 +8,31 @@ concrete configuration.
 
 ## Install
 
+**For end users (no clone needed):**
+
+Run directly with `uvx` in an ephemeral environment:
+
+```bash
+uvx --from 'phala[mcp] @ git+https://github.com/ravikiran438/phala-protocol.git@v0.1.0' phala-mcp
+```
+
+Or install persistently with `pip` into an existing venv:
+
+```bash
+pip install 'phala[mcp] @ git+https://github.com/ravikiran438/phala-protocol.git@v0.1.0'
+```
+
+**For contributors (clone):**
+
 From the repository root:
 
 ```bash
 pip install -e '.[mcp]'
 ```
 
-This installs the MCP Python SDK alongside the Phala package and
-registers the `phala-mcp` console script.
+Either path installs the MCP Python SDK alongside the Phala package
+and registers the `phala-mcp` console script in the active Python
+environment.
 
 ## Run
 
@@ -50,7 +67,27 @@ for input schemas and output shapes.
 ## Wire into VSCode
 
 Add this to `.vscode/mcp.json` at your workspace root (or configure
-globally via your VSCode user settings, under the MCP section):
+globally via your VSCode user settings, under the MCP section).
+
+**Option A — `uvx` from git URL (no persistent install):**
+
+```json
+{
+  "servers": {
+    "phala": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "phala[mcp] @ git+https://github.com/ravikiran438/phala-protocol.git@v0.1.0",
+        "phala-mcp"
+      ]
+    }
+  }
+}
+```
+
+**Option B — absolute path to a pre-installed binary:**
 
 ```json
 {
