@@ -15,8 +15,10 @@
 """Tool registrations for the Phala MCP server.
 
 Each tool wraps a Phala primitive validator. Structural validators
-round-trip a JSON payload through the relevant Pydantic model; the
-BU-Privacy tool additionally runs the paper's §3.3 invariant check.
+round-trip a JSON payload through the relevant Pydantic model. Tools
+that accept a serialized BeliefUpdate or TypedBeliefUpdate also run
+the BU-Privacy invariant on the raw payload before Pydantic, so
+signal-evidence fields cannot be silently dropped.
 """
 
 from __future__ import annotations
@@ -34,6 +36,20 @@ from phala.types import (
     WelfareTrace,
 )
 from phala.validators import BeliefPrivacyError, validate_belief_privacy
+
+# welfare_detectors extension (WD-1, WD-2, WD-3, WD-4).
+# See extensions/welfare_detectors/.
+from phala.extensions.welfare_detectors import (
+    DetectorPanel,
+    TypedBeliefUpdate,
+    WelfareDetectorError,
+    WelfarePrediction,
+    WelfareRealization,
+    arbitrate_conflicting_updates,
+    check_detector_provenance,
+    check_predictive_horizon,
+    check_typed_detector_composition,
+)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -93,9 +109,11 @@ TOOL_SCHEMAS: dict[str, dict[str, Any]] = {
     },
     "validate_belief_update": {
         "description": (
-            "Validate the structural integrity of a BeliefUpdate. "
-            "The BU-Privacy invariant (no signal-evidence fields on the "
-            "wire) is enforced separately by validate_belief_privacy."
+            "Validate a BeliefUpdate end-to-end. Runs the BU-Privacy "
+            "invariant first on the raw payload (so forbidden "
+            "signal-evidence fields cannot be silently dropped by "
+            "Pydantic), then validates structural integrity. Returns "
+            "ok=false for either kind of failure."
         ),
         "inputSchema": {
             "type": "object",
@@ -139,6 +157,96 @@ TOOL_SCHEMAS: dict[str, dict[str, Any]] = {
             "required": ["payload"],
         },
     },
+    # ── welfare_detectors extension (TBU structural + WD-1..WD-4) ─────────
+    "validate_typed_belief_update": {
+        "description": (
+            "Validate the structural integrity of a TypedBeliefUpdate "
+            "from the welfare_detectors extension. Verifies BU base "
+            "fields plus detector_type and provenance_hash. Note: "
+            "WD-1 (panel composition) and WD-4 (provenance non-leakage) "
+            "are checked separately by their dedicated tools."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"update": {"type": "object"}},
+            "required": ["update"],
+        },
+    },
+    "validate_typed_detector_composition": {
+        "description": (
+            "welfare_detectors WD-1: verify that an incoming "
+            "TypedBeliefUpdate carries a detector_type that appears in "
+            "the consumer's DetectorPanel. Untyped or unknown-type "
+            "updates are rejected."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "panel": {"type": "object"},
+                "update": {"type": "object"},
+            },
+            "required": ["panel", "update"],
+        },
+    },
+    "arbitrate_conflicting_updates": {
+        "description": (
+            "welfare_detectors WD-2: among a set of TypedBeliefUpdates "
+            "that share (target_agent_id, weight_key, valid_from), "
+            "return the unique winner — highest priority on the panel, "
+            "ties broken by lower provenance_hash (lexicographic). "
+            "Resolution is deterministic across observers."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "panel": {"type": "object"},
+                "updates": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                },
+            },
+            "required": ["panel", "updates"],
+        },
+    },
+    "validate_predictive_horizon": {
+        "description": (
+            "welfare_detectors WD-3 (consistency): verify that a "
+            "WelfareRealization paired to a WelfarePrediction lies "
+            "within the prediction's horizon window and that the "
+            "mirrored predicted_delta agrees with the prediction."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "prediction": {"type": "object"},
+                "realization": {
+                    "type": ["object", "null"],
+                    "description": (
+                        "WelfareRealization object, or null to test the "
+                        "missing-realization rejection path."
+                    ),
+                },
+                "horizon_grace_seconds": {
+                    "type": "integer",
+                    "description": "Optional grace period in seconds; default 0.",
+                },
+            },
+            "required": ["prediction"],
+        },
+    },
+    "validate_detector_provenance": {
+        "description": (
+            "welfare_detectors WD-4: verify that a TypedBeliefUpdate "
+            "carries a non-empty provenance_hash that does not encode "
+            "forbidden privacy fields (signal_components, raw_signals, "
+            "etc). Compatible with BU-Privacy."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"update": {"type": "object"}},
+            "required": ["update"],
+        },
+    },
 }
 
 
@@ -161,6 +269,17 @@ def handle_validate_satisfaction_record(arguments: dict[str, Any]) -> str:
 
 
 def handle_validate_belief_update(arguments: dict[str, Any]) -> str:
+    # BeliefUpdate is not declared with extra='forbid', so a payload
+    # carrying signal_components or other forbidden fields would
+    # silently round-trip as "valid" while Pydantic drops the extras.
+    # Run BU-Privacy on the raw payload first so the failure surfaces.
+    payload = arguments.get("update")
+    if not isinstance(payload, dict):
+        raise ToolInvocationError("expected object under key 'update'")
+    try:
+        validate_belief_privacy(payload)
+    except BeliefPrivacyError as exc:
+        return _fail(str(exc))
     return _validate_primitive(BeliefUpdate, "update", arguments)
 
 
@@ -187,6 +306,95 @@ def handle_validate_belief_privacy(arguments: dict[str, Any]) -> str:
     return _ok({"payload": "privacy-compliant"})
 
 
+# ── welfare_detectors extension handlers (TBU structural + WD-1..WD-4) ───
+
+
+def _parse_optional(cls, payload: Any, label: str):
+    if payload is None:
+        return None
+    return _parse(cls, payload, label)
+
+
+def handle_validate_typed_belief_update(arguments: dict[str, Any]) -> str:
+    payload = arguments.get("update")
+    if not isinstance(payload, dict):
+        raise ToolInvocationError("expected object under key 'update'")
+    # Same defensive composition as validate_belief_update: run BU-Privacy
+    # before Pydantic, since BeliefUpdate (parent class) does not declare
+    # extra='forbid' and would silently drop signal_components.
+    try:
+        validate_belief_privacy(payload)
+    except BeliefPrivacyError as exc:
+        return _fail(str(exc))
+    _parse(TypedBeliefUpdate, payload, "update")
+    return _ok({"update": "valid"})
+
+
+def handle_validate_typed_detector_composition(arguments: dict[str, Any]) -> str:
+    panel = _parse(DetectorPanel, arguments.get("panel"), "panel")
+    update = _parse(TypedBeliefUpdate, arguments.get("update"), "update")
+    try:
+        check_typed_detector_composition(panel, update)
+    except WelfareDetectorError as exc:
+        return _fail(str(exc))
+    return _ok({"composition": "valid", "detector_type": update.detector_type})
+
+
+def handle_arbitrate_conflicting_updates(arguments: dict[str, Any]) -> str:
+    panel = _parse(DetectorPanel, arguments.get("panel"), "panel")
+    updates_raw = arguments.get("updates")
+    if not isinstance(updates_raw, list):
+        raise ToolInvocationError("updates must be a list of objects")
+    updates = [
+        _parse(TypedBeliefUpdate, u, f"updates[{i}]")
+        for i, u in enumerate(updates_raw)
+    ]
+    # Pre-validate WD-1 per update so the caller learns the offending
+    # index instead of getting a generic "during arbitration" message.
+    for i, u in enumerate(updates):
+        try:
+            check_typed_detector_composition(panel, u)
+        except WelfareDetectorError as exc:
+            return _fail(f"updates[{i}] failed WD-1: {exc}")
+    try:
+        winner = arbitrate_conflicting_updates(panel, updates)
+    except WelfareDetectorError as exc:
+        return _fail(str(exc))
+    return _ok(
+        {
+            "winner_id": winner.id,
+            "detector_type": winner.detector_type,
+            "provenance_hash": winner.provenance_hash,
+        }
+    )
+
+
+def handle_validate_predictive_horizon(arguments: dict[str, Any]) -> str:
+    prediction = _parse(
+        WelfarePrediction, arguments.get("prediction"), "prediction"
+    )
+    realization = _parse_optional(
+        WelfareRealization, arguments.get("realization"), "realization"
+    )
+    grace = arguments.get("horizon_grace_seconds", 0)
+    if isinstance(grace, bool) or not isinstance(grace, int):
+        raise ToolInvocationError("horizon_grace_seconds must be an integer")
+    try:
+        check_predictive_horizon(prediction, realization, horizon_grace_seconds=grace)
+    except WelfareDetectorError as exc:
+        return _fail(str(exc))
+    return _ok({"horizon": "consistent"})
+
+
+def handle_validate_detector_provenance(arguments: dict[str, Any]) -> str:
+    update = _parse(TypedBeliefUpdate, arguments.get("update"), "update")
+    try:
+        check_detector_provenance(update)
+    except WelfareDetectorError as exc:
+        return _fail(str(exc))
+    return _ok({"provenance": "non-leaking"})
+
+
 HANDLERS: dict[str, Any] = {
     "validate_outcome_event": handle_validate_outcome_event,
     "validate_satisfaction_record": handle_validate_satisfaction_record,
@@ -194,6 +402,12 @@ HANDLERS: dict[str, Any] = {
     "validate_principal_satisfaction_model": handle_validate_principal_satisfaction_model,
     "validate_welfare_trace": handle_validate_welfare_trace,
     "validate_belief_privacy": handle_validate_belief_privacy,
+    # welfare_detectors extension
+    "validate_typed_belief_update": handle_validate_typed_belief_update,
+    "validate_typed_detector_composition": handle_validate_typed_detector_composition,
+    "arbitrate_conflicting_updates": handle_arbitrate_conflicting_updates,
+    "validate_predictive_horizon": handle_validate_predictive_horizon,
+    "validate_detector_provenance": handle_validate_detector_provenance,
 }
 
 

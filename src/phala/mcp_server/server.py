@@ -41,9 +41,12 @@ SERVER_NAME = "phala"
 SERVER_VERSION = "0.1.0"
 SERVER_INSTRUCTIONS = (
     "Phala (welfare / outcome protocol) reference server. Exposes "
-    "validators for the five primitives (OutcomeEvent, "
+    "Core validators for the five primitives (OutcomeEvent, "
     "SatisfactionRecord, BeliefUpdate, PrincipalSatisfactionModel, "
-    "WelfareTrace) and the BU-Privacy invariant check. All tools take "
+    "WelfareTrace), the BU-Privacy invariant check, and five "
+    "welfare_detectors extension validators (TypedBeliefUpdate "
+    "structural; WD-1 typed composition; WD-2 arbitration; WD-3 "
+    "predictive horizon; WD-4 detector provenance). All tools take "
     "and return JSON. See the project README for schemas."
 )
 
@@ -126,7 +129,9 @@ def run_doctor() -> int:
             failed.append(f"{name}: registration incomplete")
 
     total = len(schema_names | handler_names)
-    passing = total - sum(1 for n in failed if ":" in n)
+    # Count only per-tool registration failures, not the registry-set
+    # mismatch lines (which are aggregate diagnostics, not per-tool).
+    passing = total - sum(1 for n in failed if ": registration incomplete" in n)
 
     if failed:
         print(f"\n{passing}/{total} tools registered correctly.")
