@@ -31,6 +31,7 @@ from pydantic import ValidationError
 from phala.types import (
     BeliefUpdate,
     OutcomeEvent,
+    PhalaServiceRef,
     PrincipalSatisfactionModel,
     SatisfactionRecord,
     WelfareTrace,
@@ -155,6 +156,20 @@ TOOL_SCHEMAS: dict[str, dict[str, Any]] = {
             "type": "object",
             "properties": {"payload": {"type": "object"}},
             "required": ["payload"],
+        },
+    },
+    "validate_phala_service_ref": {
+        "description": (
+            "Validate a PhalaServiceRef payload (the body of the "
+            "AgentCard.capabilities.extensions[] entry whose URI equals "
+            "PHALA_EXTENSION_URI). Verifies version + the three "
+            "endpoints (outcome, satisfaction, belief_update) + the "
+            "weight namespace + clipping bounds."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"ref": {"type": "object"}},
+            "required": ["ref"],
         },
     },
     # ── welfare_detectors extension (TBU structural + WD-1..WD-4) ─────────
@@ -306,6 +321,10 @@ def handle_validate_belief_privacy(arguments: dict[str, Any]) -> str:
     return _ok({"payload": "privacy-compliant"})
 
 
+def handle_validate_phala_service_ref(arguments: dict[str, Any]) -> str:
+    return _validate_primitive(PhalaServiceRef, "ref", arguments)
+
+
 # ── welfare_detectors extension handlers (TBU structural + WD-1..WD-4) ───
 
 
@@ -402,6 +421,7 @@ HANDLERS: dict[str, Any] = {
     "validate_principal_satisfaction_model": handle_validate_principal_satisfaction_model,
     "validate_welfare_trace": handle_validate_welfare_trace,
     "validate_belief_privacy": handle_validate_belief_privacy,
+    "validate_phala_service_ref": handle_validate_phala_service_ref,
     # welfare_detectors extension
     "validate_typed_belief_update": handle_validate_typed_belief_update,
     "validate_typed_detector_composition": handle_validate_typed_detector_composition,

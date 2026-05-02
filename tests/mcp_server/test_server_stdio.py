@@ -59,6 +59,7 @@ async def test_server_lists_tools_over_stdio():
         "validate_principal_satisfaction_model",
         "validate_welfare_trace",
         "validate_belief_privacy",
+        "validate_phala_service_ref",
         # welfare_detectors extension
         "validate_typed_belief_update",
         "validate_typed_detector_composition",

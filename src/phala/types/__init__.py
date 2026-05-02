@@ -7,6 +7,10 @@ One module per primitive, re-exported here so that downstream code can
 write ``from phala.types import OutcomeEvent`` directly.
 """
 
+from phala.types.phala_service_ref import (
+    PHALA_EXTENSION_URI,
+    PhalaServiceRef,
+)
 from phala.types.belief_update import AdjustmentBounds, BeliefUpdate
 from phala.types.outcome_event import OutcomeEvent, ResolutionType
 from phala.types.principal_satisfaction_model import (
@@ -25,6 +29,8 @@ __all__ = [
     "BeliefUpdate",
     "ContextProfile",
     "OutcomeEvent",
+    "PHALA_EXTENSION_URI",
+    "PhalaServiceRef",
     "PrincipalSatisfactionModel",
     "ResolutionType",
     "SatisfactionRecord",

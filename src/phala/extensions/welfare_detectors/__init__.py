@@ -26,6 +26,7 @@ from .validators import (
 )
 
 __all__ = [
+    "EXTENSION_URI",
     "DetectorPanel",
     "MissingRealization",
     "TypedBeliefUpdate",
@@ -40,3 +41,8 @@ __all__ = [
     "check_typed_detector_composition",
     "emit_missing_realization",
 ]
+
+EXTENSION_URI = (
+    "https://github.com/ravikiran438/phala-protocol/"
+    "extensions/welfare-detectors/v1"
+)
