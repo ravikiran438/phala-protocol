@@ -115,6 +115,29 @@ pip install -e ".[test]"
 pytest
 ```
 
+## Extension Manifest
+
+This repository publishes a JSON-Schema manifest describing the
+AgentCard payload a Phala-aware agent declares under
+`capabilities.extensions[]`:
+
+- Machine-readable: [`v1/manifest.json`](v1/manifest.json)
+- Human-readable: [`v1/SPEC.md`](v1/SPEC.md)
+- Extension URI: `https://ravikiran438.github.io/phala-protocol/v1`
+
+The Phala AgentCard descriptor is `PhalaServiceRef` (see
+[`src/phala/types/phala_service_ref.py`](src/phala/types/phala_service_ref.py));
+the manifest is auto-generated from it. The welfare-detectors
+sub-extension follows the same pattern at
+[`extensions/welfare-detectors/v1/manifest.json`](extensions/welfare-detectors/v1/manifest.json) /
+[`SPEC.md`](extensions/welfare-detectors/v1/SPEC.md).
+
+The manifest is exploratory: A2A 1.0 does not yet prescribe a schema-
+discovery convention for extensions. This repository ships the
+manifest as a reference implementation; a generic validator can fetch
+the JSON and validate any declared payload without protocol-specific
+code.
+
 ## Citation
 
 If you reference this work, please cite the paper:

@@ -1,7 +1,7 @@
 {
   "manifest_version": "1.0.0",
   "extension": {
-    "uri": "https://github.com/ravikiran438/phala-protocol/v1",
+    "uri": "https://ravikiran438.github.io/phala-protocol/v1",
     "name": "Phala Outcome Protocol",
     "description": "Outcome events, satisfaction records, and belief-update propagation for A2A networks.",
     "version": "1.0.0",

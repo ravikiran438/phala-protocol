@@ -1,7 +1,7 @@
 # Welfare Detector Panel: Status
 
 **Stage:** Reference implementation
-**Extension URI:** https://github.com/ravikiran438/phala-protocol/extensions/welfare-detectors/v1
+**Extension URI:** https://ravikiran438.github.io/phala-protocol/extensions/welfare-detectors/v1
 **First drafted:** 2026-04-25
 **Depends on:** Phala Core v0.1+
 **Maintainer:** Ravi Kiran Kadaboina (@ravikiran438)

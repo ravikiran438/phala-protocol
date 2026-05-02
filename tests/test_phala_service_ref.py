@@ -34,7 +34,7 @@ def _ref(**overrides) -> PhalaServiceRef:
 
 def test_extension_uri_is_stable():
     assert PHALA_EXTENSION_URI == (
-        "https://github.com/ravikiran438/phala-protocol/v1"
+        "https://ravikiran438.github.io/phala-protocol/v1"
     )
 
 

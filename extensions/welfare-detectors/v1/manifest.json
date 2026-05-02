@@ -1,7 +1,7 @@
 {
   "manifest_version": "1.0.0",
   "extension": {
-    "uri": "https://github.com/ravikiran438/phala-protocol/extensions/welfare-detectors/v1",
+    "uri": "https://ravikiran438.github.io/phala-protocol/extensions/welfare-detectors/v1",
     "name": "Phala Welfare-Detectors Extension",
     "description": "Pluggable panel of welfare-quality detectors emitting typed BeliefUpdates with conflict arbitration.",
     "version": "1.0.0",

@@ -9,7 +9,7 @@ from __future__ import annotations
 def test_phala_core_extension_uri():
     from phala.types import PHALA_EXTENSION_URI
     assert PHALA_EXTENSION_URI == (
-        "https://github.com/ravikiran438/phala-protocol/v1"
+        "https://ravikiran438.github.io/phala-protocol/v1"
     )
 
 

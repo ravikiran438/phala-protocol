@@ -29,7 +29,7 @@ from phala.types.belief_update import AdjustmentBounds
 
 
 # Stable identifier published on AgentCard.capabilities.extensions[].uri.
-PHALA_EXTENSION_URI = "https://github.com/ravikiran438/phala-protocol/v1"
+PHALA_EXTENSION_URI = "https://ravikiran438.github.io/phala-protocol/v1"
 
 
 class PhalaServiceRef(BaseModel):
