@@ -6,7 +6,7 @@
     "description": "Outcome events, satisfaction records, and belief-update propagation for A2A networks.",
     "version": "1.0.0",
     "publisher": "Ravi Kiran Kadaboina",
-    "human_readable_spec": "https://doi.org/10.5281/zenodo.19625612"
+    "human_readable_spec": "https://doi.org/10.5281/zenodo.19625611"
   },
   "agent_card_payload_schema": {
     "$defs": {

@@ -6,7 +6,7 @@
 - **Protocol version:** 1.0.0
 - **Manifest envelope version:** 1.0.0
 - **Publisher:** Ravi Kiran Kadaboina
-- **Paper / human-readable spec:** https://doi.org/10.5281/zenodo.19625612
+- **Paper / human-readable spec:** https://doi.org/10.5281/zenodo.19625611
 
 Outcome events, satisfaction records, and belief-update propagation for A2A networks.
 

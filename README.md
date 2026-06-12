@@ -1,7 +1,7 @@
 # Phala Protocol
 
 **Status:** Draft v0.1.0
-**Paper:** [Phala: Principal-Declared Welfare Feedback for Autonomous Agent Networks](https://doi.org/10.5281/zenodo.19625612)
+**Paper:** [Phala: Principal-Declared Welfare Feedback for Autonomous Agent Networks](https://doi.org/10.5281/zenodo.19625611)
 **License:** Apache 2.0
 
 Phala (Sanskrit for *fruit* or *the outcome of action*) is a protocol
@@ -37,6 +37,30 @@ Phala is an extension to A2A [1] and MCP [2]. It does not modify
 either core protocol; all Phala primitives travel as extension fields
 on existing messages or as new endpoints.
 
+## AG-UI Binding
+
+A Phala satisfaction signal originates from the human, so
+[AG-UI](https://github.com/ag-ui-protocol/ag-ui) — the agent↔human transport —
+is its natural carrier alongside A2A and MCP. The `phala.ag_ui` module
+([src/phala/ag_ui/binding.py](./src/phala/ag_ui/binding.py)) captures that signal
+over AG-UI two ways:
+
+- **Prompted:** `satisfaction_interrupt(...)` raises an end-of-task
+  `input_required` interrupt ("did this serve you?"); `resolve_satisfaction(...)`
+  turns the resume (a valence in [-1, 1]) into a typed `SatisfactionRecord`.
+- **Volunteered:** `meta_event_to_satisfaction(...)` maps a side-band `MetaEvent`
+  (thumbs-up / rating) to a `SatisfactionRecord`.
+
+`model_state_snapshot(psm)` publishes the `PrincipalSatisfactionModel` as a
+`STATE_SNAPSHOT` so the UI asks the context-appropriate question. A refusal or an
+abandoned resume is recorded as no-evidence (`confidence: 0.0`, per invariant
+SR-1). The binding is **capture-only**: it does not manufacture a `BeliefUpdate`
+— that delta is computed and propagated by the Phala learning loop, unchanged by
+which transport carried the human's input. Dependency-free; follows the
+cross-cutting *Governance over AG-UI* convention
+(<https://ravikiran438.github.io/agent-protocol-stack/ag-ui/>); see
+[tests/test_ag_ui_binding.py](./tests/test_ag_ui_binding.py).
+
 ## Repository Layout
 
 ```
@@ -49,6 +73,7 @@ phala-protocol/
 │   └── specification.md        # Full protocol specification (in progress)
 ├── src/phala/
 │   ├── types/                  # Pydantic type library
+│   ├── ag_ui/                  # AG-UI (agent↔human) binding
 │   └── validators/             # Invariant validators
 ├── tests/                      # pytest suite
 ├── simulations/                # Figure-generation scripts (reproducible)
@@ -149,8 +174,8 @@ If you reference this work, please cite the paper:
                   Autonomous Agent Networks},
   year         = {2026},
   publisher    = {Zenodo},
-  doi          = {10.5281/zenodo.19625612},
-  url          = {https://doi.org/10.5281/zenodo.19625612}
+  doi          = {10.5281/zenodo.19625611},
+  url          = {https://doi.org/10.5281/zenodo.19625611}
 }
 ```
 
